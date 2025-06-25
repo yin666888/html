@@ -1,0 +1,1562 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML批量转图片工具 - 增强版</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --primary-light: #e3f2fd;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --light-gray: #e9ecef;
+            --border-radius: 12px;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s ease;
+            --success: #4caf50;
+            --warning: #ff9800;
+            --danger: #dc3545;
+            --dark-transparent: rgba(0, 0, 0, 0.6);
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+            color: var(--dark);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            padding: 40px 0 20px;
+            margin-bottom: 10px;
+        }
+        
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--primary);
+            position: relative;
+            display: inline-block;
+        }
+        
+        header h1:after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 2px;
+        }
+        
+        header p {
+            font-size: 1.1rem;
+            max-width: 700px;
+            margin: 0 auto;
+            color: var(--gray);
+        }
+        
+        .input-section {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid #e0e7ff;
+        }
+        
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--light-gray);
+            color: var(--primary-dark);
+            display: flex;
+            align-items: center;
+        }
+        
+        .section-title i {
+            margin-right: 10px;
+            background: var(--primary);
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--dark);
+            font-size: 0.95rem;
+        }
+        
+        textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid var(--light-gray);
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            transition: var(--transition);
+            min-height: 250px;
+            resize: vertical;
+            font-family: monospace;
+            background: #f9fbfd;
+        }
+        
+        textarea:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 24px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.2);
+        }
+        
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(67, 97, 238, 0.3);
+        }
+        
+        .btn i {
+            margin-right: 8px;
+        }
+        
+        .btn-large {
+            padding: 14px 35px;
+            font-size: 1.15rem;
+        }
+        
+        .btn-warning {
+            background: var(--warning);
+        }
+        
+        .btn-warning:hover {
+            background: #e68a00;
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+        }
+        
+        .btn-danger:hover {
+            background: #bd2130;
+        }
+        
+        .btn-success {
+            background: var(--success);
+        }
+        
+        .btn-success:hover {
+            background: #3d8b40;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .statistics {
+            display: flex;
+            justify-content: space-around;
+            background: var(--primary-light);
+            border-radius: var(--border-radius);
+            padding: 20px 15px;
+            margin: 20px 0;
+            border: 1px solid #d1e3ff;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--gray);
+            font-weight: 500;
+        }
+        
+        .results-section {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid #e0e7ff;
+        }
+        
+        .generated-results {
+            margin-top: 20px;
+        }
+        
+        .group-container {
+            margin-bottom: 30px;
+            border: 1px solid var(--light-gray);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            background: white;
+        }
+        
+        .group-header {
+            display: flex;
+            align-items: center;
+            background: white;
+            color: var(--dark);
+            padding: 15px 25px;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--light-gray);
+        }
+        
+        .group-info {
+            flex-grow: 1;
+            padding-right: 20px;
+        }
+        
+        .group-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #212529;
+        }
+        
+        .group-content {
+            font-size: 0.9rem;
+            margin-top: 8px;
+            color: var(--gray);
+        }
+        
+        .group-select {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-left: 10px;
+        }
+        
+        /* 自定义复选框样式 */
+        .custom-checkbox {
+            position: relative;
+            display: inline-block;
+            width: 22px;
+            height: 22px;
+        }
+        
+        .custom-checkbox input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .checkmark {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 22px;
+            width: 22px;
+            background-color: white;
+            border: 2px solid var(--primary);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .custom-checkbox:hover input ~ .checkmark {
+            background-color: #f0f0f0;
+        }
+        
+        .custom-checkbox input:checked ~ .checkmark {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        .checkmark:after {
+            content: "";
+            position: absolute;
+            display: none;
+        }
+        
+        .custom-checkbox input:checked ~ .checkmark:after {
+            display: block;
+        }
+        
+        /* 修复对勾位置 */
+        .custom-checkbox .checkmark:after {
+            left: 6px;
+            top: 2px;
+            width: 6px;
+            height: 11px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+        
+        .download-label {
+            color: var(--dark);
+            font-size: 0.9rem;
+            cursor: pointer;
+            font-weight: 500;
+            margin-top: 5px;
+            white-space: nowrap;
+        }
+        
+        .group-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px;
+            padding: 25px;
+            background: #f9fbfd;
+        }
+        
+        .card-preview {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            transition: var(--transition);
+            position: relative;
+            background: white;
+            height: 240px;
+            aspect-ratio: 3/4;
+            border: 1px solid #e0e7ff;
+            cursor: pointer;
+        }
+        
+        .card-preview:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(67, 97, 238, 0.2);
+        }
+        
+        .card-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        
+        .download-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 30px;
+            padding-top: 25px;
+            border-top: 1px solid var(--light-gray);
+            gap: 15px;
+        }
+        
+        .selection-info {
+            display: flex;
+            align-items: center;
+            background: var(--primary-light);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            color: var(--primary-dark);
+            border: 1px solid #d1e3ff;
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .selection-info span {
+            font-weight: 700;
+            margin: 0 5px;
+        }
+        
+        .placeholder {
+            text-align: center;
+            padding: 60px 40px;
+            color: var(--gray);
+            background: #f9fbfd;
+            border-radius: 12px;
+            border: 1px dashed #d1e3ff;
+        }
+        
+        .placeholder i {
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            color: var(--primary);
+            opacity: 0.6;
+        }
+        
+        .placeholder p {
+            font-size: 1.1rem;
+            margin: 5px 0;
+        }
+        
+        /* 图片放大模态框 - 优化版 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .modal-content {
+            max-width: 95vw;
+            max-height: 95vh;
+            position: relative;
+            background: transparent;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+        
+        .modal-content img {
+            max-width: 100%;
+            max-height: 95vh;
+            display: block;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+        
+        /* 优化导航按钮样式 - 缩小尺寸，统一深色背景 */
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background: var(--dark-transparent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 100;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        
+        .modal-close:hover {
+            background: rgba(0, 0, 0, 0.8);
+            transform: scale(1.1);
+        }
+        
+        .modal-close i {
+            color: white;
+            font-size: 22px;
+        }
+        
+        /* 导航箭头按钮 - 优化样式 */
+        .nav-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 45px;
+            height: 45px;
+            background: var(--dark-transparent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 100;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        
+        .nav-arrow:hover {
+            background: rgba(0, 0, 0, 0.8);
+            transform: translateY(-50%) scale(1.1);
+        }
+        
+        .nav-arrow i {
+            color: white;
+            font-size: 22px;
+        }
+        
+        .nav-arrow.disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        
+        .nav-arrow.disabled:hover {
+            background: var(--dark-transparent);
+            transform: translateY(-50%);
+        }
+        
+        .prev-arrow {
+            left: 20px;
+        }
+        
+        .next-arrow {
+            right: 20px;
+        }
+        
+        /* 图片计数器 */
+        .image-counter {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: var(--dark-transparent);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 30px;
+            font-size: 0.95rem;
+            z-index: 100;
+            font-weight: 500;
+        }
+        
+        /* 加载指示器 */
+        .loading-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 1.1rem;
+            z-index: 90;
+            background: var(--dark-transparent);
+            padding: 10px 20px;
+            border-radius: 30px;
+        }
+        
+        /* 进度弹窗样式 */
+        .progress-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 30px;
+            z-index: 1001;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .progress-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .progress-modal-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--primary);
+        }
+        
+        .progress-modal-content {
+            margin-bottom: 20px;
+        }
+        
+        .progress-modal-bar {
+            height: 10px;
+            background: var(--light-gray);
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+        
+        .progress-modal-fill {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+        
+        .progress-modal-text {
+            font-size: 0.95rem;
+            color: var(--gray);
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        
+        .progress-modal-stats {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            font-size: 0.9rem;
+        }
+        
+        .progress-stat-item {
+            background: var(--primary-light);
+            padding: 8px 12px;
+            border-radius: 8px;
+            flex: 1;
+            margin: 0 5px;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .progress-stat-value {
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .progress-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+        
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2rem;
+            }
+            
+            .group-cards {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+            
+            .stat-number {
+                font-size: 1.8rem;
+            }
+            
+            .group-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .group-select {
+                margin-top: 15px;
+                width: 100%;
+                flex-direction: row;
+                justify-content: flex-end;
+            }
+            
+            .download-section {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .nav-arrow {
+                width: 40px;
+                height: 40px;
+            }
+            
+            .nav-arrow i {
+                font-size: 18px;
+            }
+            
+            .progress-modal-stats {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .progress-actions {
+                flex-wrap: wrap;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .group-cards {
+                grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+                padding: 15px;
+            }
+            
+            .group-content {
+                max-width: 100%;
+                font-size: 0.85rem;
+            }
+            
+            .btn-large {
+                width: 100%;
+            }
+            
+            .modal-content {
+                max-width: 98%;
+            }
+            
+            .nav-arrow {
+                width: 35px;
+                height: 35px;
+            }
+            
+            .prev-arrow {
+                left: 10px;
+            }
+            
+            .next-arrow {
+                right: 10px;
+            }
+            
+            .modal-close {
+                top: 15px;
+                right: 15px;
+                width: 35px;
+                height: 35px;
+            }
+            
+            .image-counter {
+                top: 15px;
+                left: 15px;
+                padding: 6px 12px;
+                font-size: 0.85rem;
+            }
+            
+            .progress-modal {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 进度弹窗 -->
+    <div class="progress-modal" id="progress-modal">
+        <h3 class="progress-modal-title">处理进度</h3>
+        <div class="progress-modal-content">
+            <div class="progress-modal-bar">
+                <div class="progress-modal-fill" id="progress-modal-fill"></div>
+            </div>
+            <div class="progress-modal-text" id="progress-modal-text">准备开始处理...</div>
+            
+            <div class="progress-modal-stats">
+                <div class="progress-stat-item">
+                    总组数: <span class="progress-stat-value" id="total-groups-stat">0</span>
+                </div>
+                <div class="progress-stat-item">
+                    当前组: <span class="progress-stat-value" id="current-group-stat">0</span>
+                </div>
+                <div class="progress-stat-item">
+                    进度: <span class="progress-stat-value" id="progress-percent">0%</span>
+                </div>
+                <!-- 修改为"用时" -->
+                <div class="progress-stat-item">
+                    用时: <span class="progress-stat-value" id="processing-time">0秒</span>
+                </div>
+            </div>
+            
+            <div class="progress-actions">
+                <button id="pause-btn" class="btn btn-warning">
+                    <i class="fas fa-pause"></i> 暂停处理
+                </button>
+                <button id="cancel-btn" class="btn btn-danger">
+                    <i class="fas fa-times"></i> 取消处理
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 图片放大模态框 - 优化版 -->
+    <div class="modal-overlay" id="image-modal">
+        <div class="modal-content">
+            <div class="modal-close" id="modal-close">
+                <i class="fas fa-times"></i>
+            </div>
+            <div class="image-counter" id="image-counter"></div>
+            <button class="nav-arrow prev-arrow" id="prev-arrow">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <button class="nav-arrow next-arrow" id="next-arrow">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+            <img id="modal-image" src="" alt="预览大图">
+            <div class="loading-indicator" id="loading-indicator">加载中...</div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <header>
+            <h1>HTML批量转图片工具</h1>
+            <p>将HTML内容批量转换为图片，支持点击图片放大查看</p>
+        </header>
+        
+        <!-- 输入数据模块 -->
+        <div class="input-section">
+            <h2 class="section-title"><i class="fas fa-keyboard"></i> 输入数据</h2>
+            
+            <div class="input-group">
+                <label for="html-input">HTML内容 (按指定格式输入)</label>
+                <textarea id="html-input" placeholder="在此粘贴您的HTML内容..."></textarea>
+            </div>
+            
+            <div class="action-buttons">
+                <button id="generate-btn" class="btn">
+                    <i class="fas fa-cogs"></i> 生成图片
+                </button>
+                <!-- 清除输入按钮 -->
+                <button id="clear-input-btn" class="btn btn-danger">
+                    <i class="fas fa-trash-alt"></i> 清除输入
+                </button>
+            </div>
+            
+            <div class="statistics">
+                <div class="stat-item">
+                    <div class="stat-number" id="group-count">0</div>
+                    <div class="stat-label">分组</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="page-count">0</div>
+                    <div class="stat-label">页面</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="image-count">0</div>
+                    <div class="stat-label">图片</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 生成结果模块 -->
+        <div class="results-section">
+            <h2 class="section-title"><i class="fas fa-folder"></i> 生成结果</h2>
+            
+            <div class="generated-results" id="generated-results">
+                <!-- 分组容器将在这里动态生成 -->
+                <div class="placeholder">
+                    <i class="fas fa-images"></i>
+                    <p>生成的结果将显示在这里</p>
+                    <p>点击"生成图片"按钮开始处理</p>
+                </div>
+            </div>
+            
+            <!-- 下载按钮区域 -->
+            <div class="download-section">
+                <div class="selection-info" id="selection-info">
+                    总分组: <span id="total-groups">0</span> | 
+                    已选分组: <span id="selected-groups">0</span>
+                </div>
+                
+                <div class="action-buttons">
+                    <button id="download-btn" class="btn btn-large">
+                        <i class="fas fa-file-archive"></i> 打包下载
+                    </button>
+                    <!-- 清除输出按钮 -->
+                    <button id="clear-btn" class="btn btn-large btn-danger">
+                        <i class="fas fa-trash-alt"></i> 清除输出
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const htmlInput = document.getElementById('html-input');
+            const generateBtn = document.getElementById('generate-btn');
+            const downloadBtn = document.getElementById('download-btn');
+            const clearBtn = document.getElementById('clear-btn');
+            const clearInputBtn = document.getElementById('clear-input-btn');
+            const generatedResults = document.getElementById('generated-results');
+            const groupCountEl = document.getElementById('group-count');
+            const pageCountEl = document.getElementById('page-count');
+            const imageCountEl = document.getElementById('image-count');
+            const imageModal = document.getElementById('image-modal');
+            const modalImage = document.getElementById('modal-image');
+            const modalClose = document.getElementById('modal-close');
+            const prevArrow = document.getElementById('prev-arrow');
+            const nextArrow = document.getElementById('next-arrow');
+            const imageCounter = document.getElementById('image-counter');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const totalGroupsEl = document.getElementById('total-groups');
+            const selectedGroupsEl = document.getElementById('selected-groups');
+            const selectionInfo = document.getElementById('selection-info');
+            
+            // 进度弹窗元素
+            const progressModal = document.getElementById('progress-modal');
+            const progressModalFill = document.getElementById('progress-modal-fill');
+            const progressModalText = document.getElementById('progress-modal-text');
+            const pauseBtn = document.getElementById('pause-btn');
+            const cancelBtn = document.getElementById('cancel-btn');
+            const totalGroupsStat = document.getElementById('total-groups-stat');
+            const currentGroupStat = document.getElementById('current-group-stat');
+            const progressPercent = document.getElementById('progress-percent');
+            const processingTime = document.getElementById('processing-time');
+            
+            let generatedImages = [];
+            let scrollPosition = 0;
+            let totalGroups = 0;
+            let selectedGroups = 0;
+            let currentGroupIndex = -1;
+            let currentImageIndex = -1;
+            let currentGroupImages = [];
+            let isPaused = false;
+            let isCancelled = false;
+            let processing = false;
+            let processingTimer = null;
+            let startTime = 0;
+            
+            // 更新进度条
+            function updateProgress(percent, message, currentGroup, totalGroups) {
+                progressModalFill.style.width = percent + '%';
+                progressModalText.textContent = message;
+                totalGroupsStat.textContent = totalGroups;
+                currentGroupStat.textContent = currentGroup;
+                progressPercent.textContent = Math.round(percent) + '%';
+                
+                // 更新用时
+                if (startTime) {
+                    const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+                    processingTime.textContent = `${elapsedSeconds}秒`;
+                }
+            }
+            
+            // 显示进度弹窗
+            function showProgressModal() {
+                progressModal.classList.add('active');
+                document.body.style.overflow = 'hidden';
+                // 开始计时
+                startTime = Date.now();
+                // 启动计时器每秒更新一次时间
+                processingTimer = setInterval(() => {
+                    if (startTime) {
+                        const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+                        processingTime.textContent = `${elapsedSeconds}秒`;
+                    }
+                }, 1000);
+            }
+            
+            // 隐藏进度弹窗
+            function hideProgressModal() {
+                progressModal.classList.remove('active');
+                document.body.style.overflow = 'auto';
+                // 清除计时器
+                if (processingTimer) {
+                    clearInterval(processingTimer);
+                    processingTimer = null;
+                }
+                startTime = 0;
+            }
+            
+            // 更新统计信息
+            function updateStats(groups, pages, images) {
+                groupCountEl.textContent = groups;
+                pageCountEl.textContent = pages;
+                imageCountEl.textContent = images;
+            }
+            
+            // 更新选择统计
+            function updateSelectionCount() {
+                totalGroupsEl.textContent = totalGroups;
+                selectedGroupsEl.textContent = selectedGroups;
+                
+                if (selectedGroups === 0) {
+                    selectionInfo.style.backgroundColor = '#f8d7da';
+                    selectionInfo.style.borderColor = '#f5c2c7';
+                } else {
+                    selectionInfo.style.backgroundColor = '';
+                    selectionInfo.style.borderColor = '';
+                }
+            }
+            
+            // 清除所有结果
+            function clearAllResults() {
+                generatedImages = [];
+                generatedResults.innerHTML = `
+                    <div class="placeholder">
+                        <i class="fas fa-images"></i>
+                        <p>生成的结果将显示在这里</p>
+                        <p>点击"生成图片"按钮开始处理</p>
+                    </div>
+                `;
+                updateStats(0, 0, 0);
+                totalGroups = 0;
+                selectedGroups = 0;
+                updateSelectionCount();
+            }
+            
+            // 解析输入数据
+            function parseInputData(input) {
+                const groups = [];
+                const groupSections = input.split(/(?=title：)/g);
+                
+                for (const section of groupSections) {
+                    if (!section.trim()) continue;
+                    
+                    // 提取标题
+                    const titleMatch = section.match(/title：(.*?)(?=\s*content：|\s*<)/);
+                    if (!titleMatch) continue;
+                    
+                    const title = titleMatch[1].trim();
+                    
+                    // 提取内容
+                    let content = '';
+                    const contentMatch = section.match(/content：([\s\S]*?)(?=\s*<)/);
+                    if (contentMatch) {
+                        content = contentMatch[1].trim();
+                    }
+                    
+                    // 提取所有HTML内容块
+                    const pages = [];
+                    const pageRegex = /<(封面|内容页)>([\s\S]*?)<\/\1>/g;
+                    let pageMatch;
+                    
+                    while ((pageMatch = pageRegex.exec(section)) !== null) {
+                        pages.push({
+                            type: pageMatch[1],
+                            html: pageMatch[2].trim()
+                        });
+                    }
+                    
+                    if (pages.length > 0) {
+                        groups.push({
+                            title: title,
+                            content: content,
+                            pages: pages
+                        });
+                    }
+                }
+                
+                return groups;
+            }
+            
+            // 暂停处理
+            function togglePauseProcessing() {
+                if (!processing) return;
+                
+                isPaused = !isPaused;
+                
+                if (isPaused) {
+                    pauseBtn.innerHTML = '<i class="fas fa-play"></i> 继续处理';
+                    pauseBtn.classList.add('btn-success');
+                    progressModalText.textContent = '处理已暂停';
+                } else {
+                    pauseBtn.innerHTML = '<i class="fas fa-pause"></i> 暂停处理';
+                    pauseBtn.classList.remove('btn-success');
+                }
+            }
+            
+            // 取消处理
+            function cancelProcessing() {
+                if (!processing) return;
+                
+                isCancelled = true;
+                progressModalText.textContent = '正在取消处理...';
+            }
+            
+            // 生成图片
+            async function generateImages() {
+                if (processing) {
+                    alert('处理正在进行中，请稍候...');
+                    return;
+                }
+                
+                processing = true;
+                isPaused = false;
+                isCancelled = false;
+                
+                // 保存当前滚动位置
+                scrollPosition = window.scrollY;
+                
+                // 重置状态
+                generatedImages = [];
+                generatedResults.innerHTML = '';
+                updateProgress(0, '开始处理...', 0, 0);
+                showProgressModal();
+                downloadBtn.disabled = true;
+                updateStats(0, 0, 0);
+                selectedGroups = 0;
+                totalGroups = 0;
+                updateSelectionCount();
+                
+                const inputData = htmlInput.value;
+                if (!inputData.trim()) {
+                    alert('请输入HTML内容');
+                    hideProgressModal();
+                    processing = false;
+                    return;
+                }
+                
+                const groups = parseInputData(inputData);
+                if (groups.length === 0) {
+                    alert('未找到有效数据，请检查输入格式');
+                    hideProgressModal();
+                    processing = false;
+                    return;
+                }
+                
+                let totalPages = 0;
+                groups.forEach(group => totalPages += group.pages.length);
+                let processedPages = 0;
+                
+                // 更新分组统计
+                updateStats(groups.length, totalPages, 0);
+                totalGroups = groups.length;
+                selectedGroups = groups.length;
+                updateSelectionCount();
+                
+                // 处理每个组
+                for (let groupIndex = 0; groupIndex < groups.length; groupIndex++) {
+                    if (isCancelled) break;
+                    
+                    const group = groups[groupIndex];
+                    const groupImages = [];
+                    
+                    // 更新进度：开始处理新组
+                    updateProgress(
+                        Math.round((processedPages / totalPages) * 100), 
+                        `正在处理组: ${group.title}`, 
+                        groupIndex + 1,
+                        groups.length
+                    );
+                    
+                    // 检查暂停状态
+                    while (isPaused && !isCancelled) {
+                        await new Promise(resolve => setTimeout(resolve, 200));
+                    }
+                    
+                    if (isCancelled) break;
+                    
+                    // 创建分组容器
+                    const groupContainer = document.createElement('div');
+                    groupContainer.className = 'group-container';
+                    groupContainer.dataset.groupTitle = group.title;
+                    
+                    // 分组标题和选择框
+                    const groupHeader = document.createElement('div');
+                    groupHeader.className = 'group-header';
+                    
+                    const groupInfo = document.createElement('div');
+                    groupInfo.className = 'group-info';
+                    
+                    const groupTitle = document.createElement('div');
+                    groupTitle.className = 'group-title';
+                    groupTitle.textContent = group.title;
+                    
+                    const groupContent = document.createElement('div');
+                    groupContent.className = 'group-content';
+                    groupContent.textContent = group.content;
+                    
+                    groupInfo.appendChild(groupTitle);
+                    if (group.content) {
+                        groupInfo.appendChild(groupContent);
+                    }
+                    
+                    const groupSelect = document.createElement('div');
+                    groupSelect.className = 'group-select';
+                    
+                    // 创建自定义复选框
+                    const checkboxContainer = document.createElement('label');
+                    checkboxContainer.className = 'custom-checkbox';
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.checked = true;
+                    checkbox.dataset.group = group.title;
+                    
+                    // 添加复选框事件
+                    checkbox.addEventListener('change', function() {
+                        if (this.checked) {
+                            selectedGroups++;
+                        } else {
+                            selectedGroups--;
+                        }
+                        updateSelectionCount();
+                    });
+                    
+                    const checkmark = document.createElement('span');
+                    checkmark.className = 'checkmark';
+                    
+                    checkboxContainer.appendChild(checkbox);
+                    checkboxContainer.appendChild(checkmark);
+                    
+                    const downloadLabel = document.createElement('div');
+                    downloadLabel.className = 'download-label';
+                    downloadLabel.textContent = '下载';
+                    downloadLabel.addEventListener('click', function() {
+                        checkbox.checked = !checkbox.checked;
+                        checkbox.dispatchEvent(new Event('change'));
+                    });
+                    
+                    groupSelect.appendChild(checkboxContainer);
+                    groupSelect.appendChild(downloadLabel);
+                    
+                    groupHeader.appendChild(groupInfo);
+                    groupHeader.appendChild(groupSelect);
+                    
+                    const groupCards = document.createElement('div');
+                    groupCards.className = 'group-cards';
+                    
+                    groupContainer.appendChild(groupHeader);
+                    groupContainer.appendChild(groupCards);
+                    generatedResults.appendChild(groupContainer);
+                    
+                    // 处理组内的每个页面
+                    for (let i = 0; i < group.pages.length; i++) {
+                        if (isCancelled) break;
+                        
+                        // 检查暂停状态
+                        while (isPaused && !isCancelled) {
+                            await new Promise(resolve => setTimeout(resolve, 200));
+                        }
+                        
+                        if (isCancelled) break;
+                        
+                        const page = group.pages[i];
+                        try {
+                            // 创建临时容器
+                            const tempContainer = document.createElement('div');
+                            tempContainer.style.width = '1080px';
+                            tempContainer.style.height = '1440px';
+                            tempContainer.style.position = 'absolute';
+                            tempContainer.style.left = '-9999px';
+                            tempContainer.style.top = '0';
+                            tempContainer.innerHTML = page.html;
+                            document.body.appendChild(tempContainer);
+                            
+                            // 使用html2canvas生成图片
+                            const canvas = await html2canvas(tempContainer, {
+                                scale: 1,
+                                useCORS: true,
+                                logging: false,
+                                width: 1080,
+                                height: 1440
+                            });
+                            
+                            // 移除临时容器
+                            document.body.removeChild(tempContainer);
+                            
+                            // 获取图片数据
+                            const imageData = canvas.toDataURL('image/png');
+                            
+                            // 使用字母顺序命名：title_a, title_b, title_c...
+                            const suffix = String.fromCharCode(97 + i); // 97是'a'的ASCII码
+                            const imageName = `${group.title}_${suffix}.png`;
+                            
+                            groupImages.push({
+                                name: imageName,
+                                data: imageData,
+                                type: page.type
+                            });
+                            
+                            // 更新进度
+                            processedPages++;
+                            const percent = Math.round((processedPages / totalPages) * 100);
+                            updateProgress(
+                                percent, 
+                                `处理中: ${group.title} (${i+1}/${group.pages.length})`, 
+                                groupIndex + 1,
+                                groups.length
+                            );
+                            
+                            // 更新图片统计
+                            updateStats(groups.length, totalPages, processedPages);
+                            
+                            // 添加到卡片预览
+                            const cardElement = document.createElement('div');
+                            cardElement.className = 'card-preview';
+                            cardElement.dataset.groupIndex = groupIndex;
+                            cardElement.dataset.imageIndex = i;
+                            
+                            const img = document.createElement('img');
+                            img.src = imageData;
+                            img.alt = '';
+                            
+                            // 添加点击事件监听器
+                            cardElement.addEventListener('click', function() {
+                                const groupIndex = parseInt(this.dataset.groupIndex);
+                                const imageIndex = parseInt(this.dataset.imageIndex);
+                                openImageModal(groupIndex, imageIndex);
+                            });
+                            
+                            cardElement.appendChild(img);
+                            groupCards.appendChild(cardElement);
+                            
+                            // 恢复滚动位置，防止页面跳动
+                            window.scrollTo(0, scrollPosition);
+                            
+                        } catch (error) {
+                            console.error('生成图片失败:', error);
+                            updateProgress(100, `错误: ${error.message}`, groupIndex + 1, groups.length);
+                        }
+                    }
+                    
+                    generatedImages.push({
+                        group: group.title,
+                        content: group.content,
+                        images: groupImages
+                    });
+                }
+                
+                if (isCancelled) {
+                    updateProgress(0, '处理已取消', 0, 0);
+                    setTimeout(() => {
+                        hideProgressModal();
+                        clearAllResults();
+                        processing = false;
+                    }, 1500);
+                } else {
+                    updateProgress(100, '处理完成!', groups.length, groups.length);
+                    setTimeout(() => {
+                        hideProgressModal();
+                        processing = false;
+                    }, 1000);
+                    downloadBtn.disabled = false;
+                }
+                
+                // 处理完成后滚动到顶部
+                window.scrollTo(0, 0);
+            }
+            
+            // 打开图片模态框 - 优化版
+            function openImageModal(groupIndex, imageIndex) {
+                currentGroupIndex = groupIndex;
+                currentImageIndex = imageIndex;
+                currentGroupImages = generatedImages[groupIndex].images;
+                
+                // 显示加载指示器
+                loadingIndicator.style.display = 'block';
+                
+                // 预加载图片
+                const img = new Image();
+                img.src = currentGroupImages[imageIndex].data;
+                img.onload = function() {
+                    modalImage.src = this.src;
+                    updateImageCounter();
+                    loadingIndicator.style.display = 'none';
+                    updateNavArrows();
+                };
+                
+                imageModal.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+            
+            // 更新图片计数器
+            function updateImageCounter() {
+                imageCounter.textContent = `${currentImageIndex + 1} / ${currentGroupImages.length}`;
+            }
+            
+            // 更新导航箭头状态
+            function updateNavArrows() {
+                // 重置箭头状态
+                prevArrow.classList.remove('disabled');
+                nextArrow.classList.remove('disabled');
+                
+                // 如果是第一张图片，禁用上一张按钮
+                if (currentImageIndex === 0) {
+                    prevArrow.classList.add('disabled');
+                }
+                
+                // 如果是最后一张图片，禁用下一张按钮
+                if (currentImageIndex === currentGroupImages.length - 1) {
+                    nextArrow.classList.add('disabled');
+                }
+            }
+            
+            // 导航到上一张图片
+            function navigateToPrevImage() {
+                if (prevArrow.classList.contains('disabled')) return;
+                
+                // 显示加载指示器
+                loadingIndicator.style.display = 'block';
+                
+                if (currentImageIndex > 0) {
+                    currentImageIndex--;
+                }
+                
+                // 预加载图片
+                const img = new Image();
+                img.src = currentGroupImages[currentImageIndex].data;
+                img.onload = function() {
+                    modalImage.src = this.src;
+                    updateImageCounter();
+                    loadingIndicator.style.display = 'none';
+                    updateNavArrows();
+                };
+            }
+            
+            // 导航到下一张图片
+            function navigateToNextImage() {
+                if (nextArrow.classList.contains('disabled')) return;
+                
+                // 显示加载指示器
+                loadingIndicator.style.display = 'block';
+                
+                if (currentImageIndex < currentGroupImages.length - 1) {
+                    currentImageIndex++;
+                }
+                
+                // 预加载图片
+                const img = new Image();
+                img.src = currentGroupImages[currentImageIndex].data;
+                img.onload = function() {
+                    modalImage.src = this.src;
+                    updateImageCounter();
+                    loadingIndicator.style.display = 'none';
+                    updateNavArrows();
+                };
+            }
+            
+            // 关闭图片模态框
+            function closeImageModal() {
+                imageModal.classList.remove('active');
+                document.body.style.overflow = 'auto';
+            }
+            
+            // 点击模态框背景关闭
+            imageModal.addEventListener('click', (e) => {
+                if (e.target === imageModal) {
+                    closeImageModal();
+                }
+            });
+            
+            // 点击关闭按钮
+            modalClose.addEventListener('click', closeImageModal);
+            
+            // 按ESC键关闭模态框
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && imageModal.classList.contains('active')) {
+                    closeImageModal();
+                }
+                
+                // 左右箭头键导航
+                if (imageModal.classList.contains('active')) {
+                    if (e.key === 'ArrowLeft') {
+                        navigateToPrevImage();
+                    } else if (e.key === 'ArrowRight') {
+                        navigateToNextImage();
+                    }
+                }
+            });
+            
+            // 为导航箭头添加事件
+            prevArrow.addEventListener('click', navigateToPrevImage);
+            nextArrow.addEventListener('click', navigateToNextImage);
+            
+            // 打包下载
+            function downloadAll() {
+                if (generatedImages.length === 0) {
+                    alert('请先生成图片');
+                    return;
+                }
+                
+                if (selectedGroups === 0) {
+                    alert('请至少选择一个分组进行下载');
+                    return;
+                }
+                
+                // 获取所有分组容器
+                const groupContainers = document.querySelectorAll('.group-container');
+                
+                const zip = new JSZip();
+                const date = new Date();
+                const dateStr = `${date.getFullYear()}${(date.getMonth()+1).toString().padStart(2, '0')}${date.getDate().toString().padStart(2, '0')}-${date.getHours().toString().padStart(2, '0')}${date.getMinutes().toString().padStart(2, '0')}${date.getSeconds().toString().padStart(2, '0')}`;
+                
+                // 添加每个组的图片
+                generatedImages.forEach(groupData => {
+                    // 查找对应的分组容器
+                    const groupContainer = Array.from(groupContainers).find(
+                        container => container.dataset.groupTitle === groupData.group
+                    );
+                    
+                    if (groupContainer) {
+                        // 检查复选框是否选中
+                        const checkbox = groupContainer.querySelector('input[type="checkbox"]');
+                        if (checkbox.checked) {
+                            const folder = zip.folder(groupData.group);
+                            
+                            // 添加图片文件
+                            groupData.images.forEach(image => {
+                                const base64Data = image.data.split(',')[1];
+                                folder.file(image.name, base64Data, {base64: true});
+                            });
+                            
+                            // 添加content信息到文本文件
+                            if (groupData.content) {
+                                folder.file(`${groupData.group}.txt`, groupData.content);
+                            }
+                        }
+                    }
+                });
+                
+                // 生成ZIP文件
+                zip.generateAsync({type:"blob"})
+                .then(function(content) {
+                    saveAs(content, `HTML图片_${dateStr}.zip`);
+                });
+            }
+            
+            // 事件监听
+            generateBtn.addEventListener('click', generateImages);
+            downloadBtn.addEventListener('click', downloadAll);
+            clearBtn.addEventListener('click', clearAllResults);
+            pauseBtn.addEventListener('click', togglePauseProcessing);
+            cancelBtn.addEventListener('click', cancelProcessing);
+            clearInputBtn.addEventListener('click', function() {
+                htmlInput.value = '';
+                htmlInput.focus();
+            });
+        });
+    </script>
+</body>
+</html>
